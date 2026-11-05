@@ -1,0 +1,10 @@
+.DS_Store
+/build/
+/.build/
+/DerivedData/
+*.xcuserstate
+xcuserdata/
+*.dSYM/
+.env
+.env.*
+!.env.example
