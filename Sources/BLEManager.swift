@@ -49,8 +49,12 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     // MARK: - CBCentralManagerDelegate
 
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        if central.state == .poweredOn, let id = savedIdentifier, peripheral == nil {
-            if let p = central.retrievePeripherals(withIdentifiers: [id]).first {
+        if central.state == .poweredOn {
+            if let p = peripheral {
+                // 睡眠关闭蓝牙时不一定回调 didDisconnect，唤醒后需恢复仍保留的设备。
+                if p.state == .disconnected { central.connect(p) }
+            } else if let id = savedIdentifier,
+                      let p = central.retrievePeripherals(withIdentifiers: [id]).first {
                 select(p, persist: false)
             }
         }

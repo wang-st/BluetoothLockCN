@@ -76,7 +76,16 @@ RSSI 越接近 0，信号通常越强。例如，−50 dBm 比 −80 dBm 强。�
 - 锁屏使用运行时解析的私有符号 `SACLockScreenImmediate`，锁屏状态检测也依赖系统会话字典中的非公开键。这些行为可能随 macOS 更新而变化，当前实现不适合直接用于 Mac App Store 分发。
 - 蓝牙信号只能作为辅助在场判断，不能保证每次离开都会及时锁屏；重要场景仍应手动锁屏。
 - 设备返回时不会自动解锁，仍需使用 macOS 的正常解锁方式。
-- 目前有锁屏状态的定向回归测试（`Tests/LockStateTests.swift`）；尚未覆盖所有蓝牙设备和系统版本，构建成功不等同于实际锁屏验证。
+- 目前有锁屏状态与蓝牙唤醒恢复的定向回归测试（`Tests/LockStateTests.swift`、`Tests/BLERecoveryTests.swift`）；尚未覆盖所有蓝牙设备和系统版本，构建成功不等同于实际锁屏验证。
+
+## 定向测试
+
+蓝牙恢复测试直接调用生产代码 `BLEManager`，仅用测试替身模拟 CoreBluetooth 的设备与连接事件；覆盖睡眠关闭蓝牙后自动重连并持续刷新 RSSI。已在一台 Mac 上人工确认睡眠唤醒后恢复刷新；其他设备和系统版本仍需验证。
+
+```sh
+swiftc Sources/BLEManager.swift Sources/Prefs.swift Sources/AppLanguage.swift Tests/BLERecoveryTests.swift -o /tmp/bluetoothlock-ble-tests
+/tmp/bluetoothlock-ble-tests
+```
 
 ## 项目结构
 

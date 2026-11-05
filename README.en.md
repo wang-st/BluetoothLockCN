@@ -76,7 +76,16 @@ The language setting controls the app’s own text. macOS permission dialogs and
 - Locking dynamically resolves the private `SACLockScreenImmediate` symbol, and lock-state detection depends on an undocumented session dictionary key. These behaviors may change with macOS updates; this implementation is not suitable for direct Mac App Store distribution.
 - Bluetooth signal strength provides an additional proximity cue and cannot guarantee timely locking every time you leave. Lock manually when needed.
 - Returning with your device does not unlock your Mac. Use the normal macOS unlock flow.
-- Targeted lock-state regression tests are available in `Tests/LockStateTests.swift`. They do not cover every Bluetooth device or macOS version, and a successful build does not verify actual screen locking.
+- Targeted lock-state and Bluetooth wake-recovery regression tests are available in `Tests/LockStateTests.swift` and `Tests/BLERecoveryTests.swift`. They do not cover every Bluetooth device or macOS version, and a successful build does not verify actual screen locking.
+
+## Targeted tests
+
+The Bluetooth recovery test calls the production `BLEManager`, with test doubles only for CoreBluetooth devices and connection events. It covers reconnection and continuous RSSI updates after Bluetooth powers off during sleep. Signal refresh after sleep/wake has been manually confirmed on one Mac; other devices and macOS versions still need verification.
+
+```sh
+swiftc Sources/BLEManager.swift Sources/Prefs.swift Sources/AppLanguage.swift Tests/BLERecoveryTests.swift -o /tmp/bluetoothlock-ble-tests
+/tmp/bluetoothlock-ble-tests
+```
 
 ## Project structure
 
