@@ -29,6 +29,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var connectionLostAt: Date?
     private var presenceIsAway = false
     private var pendingAwayLock = false // 设备已离开但因用户在使用而暂缓锁屏
+    private var lockState = LockState.idle
+    private var lockReason = ""
     private var screenWasLocked = false // 用于检测"解锁瞬间"
 
     // MARK: - 生命周期
@@ -187,9 +189,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// 菜单栏图标：监控中显示 🔒 + 4 格信号条（格数不变不刷新，避免视觉跳动）；
-    /// 离开锁屏显示纯锁形+"已锁"；其余状态显示纯锁形
+    /// “已锁”只由系统会话的实际锁定状态决定。
     private func updateStatusIcon() {
         guard let button = statusItem?.button else { return }
+        if lockState != .idle {
+            button.image = Self.lockIcon()
+            switch lockState {
+            case .locked: button.title = language.text(" 已锁", " Locked")
+            case .failed: button.title = language.text(" 锁屏失败", " Lock failed")
+            case .requesting: button.title = language.text(" 锁屏中", " Locking")
+            case .idle: break
+            }
+            return
+        }
         let away = Prefs.monitoring && presenceIsAway
         if Prefs.monitoring, hasSignal, !away {
             // 信号映射：阈值-20dBm → 1 格，阈值+30dBm → 4 格，线性分档
@@ -199,7 +211,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.title = ""
         } else {
             button.image = Self.lockIcon()
-            button.title = away ? language.text(" 已锁", " Locked") : ""
+            button.title = away ? language.text(" 离开", " Away") : ""
         }
     }
 
@@ -240,6 +252,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.hasSignal = hasSignal
         model.isAway = presenceIsAway
         model.pendingLock = pendingAwayLock
+        model.lockState = lockState
         model.threshold = Prefs.threshold
         model.delaySec = Prefs.delaySec
         model.activitySuppression = Prefs.activitySuppression
@@ -320,14 +333,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         pendingAwayLock = false
         belowSince = nil
         awayAt = Date()
-        if !LockController.isScreenLocked() {
-            if LockController.lockScreen() {
-                Notifier.send(title: language.text("蓝牙感应锁", "Bluetooth Lock"), body: language.text("\(reason)，Mac 已自动锁屏", "\(reason). Your Mac has been locked automatically."))
-            } else {
-                Notifier.send(title: language.text("蓝牙感应锁", "Bluetooth Lock"), body: language.text("\(reason)，但自动锁屏失败，请手动锁屏", "\(reason), but automatic locking failed. Please lock your Mac manually."))
-            }
-        }
+        requestScreenLock(reason: reason)
+    }
+
+    private func requestScreenLock(reason: String) {
+        guard !lockState.isRequesting else { return }
+        lockReason = reason
+        lockState.request(isLocked: LockController.isScreenLocked(), at: Date(),
+                          perform: LockController.lockScreen)
+        if lockState == .failed { notifyLockResult() }
         refresh()
+    }
+
+    private func notifyLockResult() {
+        if lockState == .locked {
+            Notifier.send(title: language.text("蓝牙感应锁", "Bluetooth Lock"),
+                          body: language.text("\(lockReason)，Mac 已锁屏", "\(lockReason). Your Mac has been locked."))
+        } else if lockState == .failed {
+            Notifier.send(title: language.text("蓝牙感应锁", "Bluetooth Lock"),
+                          body: language.text("\(lockReason)，但未能确认锁屏成功，请手动锁屏", "\(lockReason), but locking could not be confirmed. Please lock your Mac manually."))
+        }
     }
 
     private func resetPresence() {
@@ -351,11 +376,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // 解锁瞬间：能解锁说明用户本人在场，立即清除"已锁"状态并马上刷新信号
         let locked = LockController.isScreenLocked()
+        let previousLockState = lockState
+        lockState.update(isLocked: locked, at: now)
+        if previousLockState.isRequesting, !lockState.isRequesting {
+            notifyLockResult()
+        }
         if screenWasLocked, !locked {
             resetPresence()
             ble.refreshRSSINow()
         }
         screenWasLocked = locked
+        if lockState != previousLockState { refresh() }
 
         guard Prefs.monitoring, ble.isReady, ble.selectedName != nil else { return }
 
@@ -425,7 +456,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Prefs.language = language
                 self?.refresh()
             },
-            onLock: { LockController.lockScreen() },
+            onLock: { [weak self] in
+                guard let self = self else { return }
+                self.requestScreenLock(reason: self.language.text("手动锁屏", "Manual lock"))
+            },
             onQuit: { NSApplication.shared.terminate(nil) }
         )
     }

@@ -23,6 +23,7 @@ final class PanelModel: ObservableObject {
     @Published var hasSignal = false
     @Published var isAway = false
     @Published var pendingLock = false
+    @Published var lockState = LockState.idle
     @Published var threshold = -70
     @Published var delaySec = 3
     @Published var activitySuppression = true
@@ -74,6 +75,9 @@ struct PanelView: View {
         model.hasSignal ? min(5, max(1, Int(normalized * 5.4))) : 0
     }
     private var statusInfo: (text: String, color: Color) {
+        if model.lockState == .failed { return (language.text("锁屏失败 · 请手动锁屏", "Lock failed · Lock manually"), .red) }
+        if model.lockState.isRequesting { return (language.text("正在锁屏", "Locking…"), .orange) }
+        if model.lockState == .locked { return (language.text("屏幕已锁定", "Screen locked"), accent) }
         if !model.bleReady { return (language.text("蓝牙未就绪", "Bluetooth unavailable"), .secondary) }
         if model.deviceName == nil { return (language.text("等待选择设备", "Choose a device"), .secondary) }
         if !model.monitoring { return (language.text("监控已暂停", "Monitoring paused"), .secondary) }
@@ -444,6 +448,7 @@ struct PanelView: View {
                     .contentShape(RoundedRectangle(cornerRadius: 10))
             }
             .buttonStyle(.plain)
+            .disabled(model.lockState.isRequesting)
             .foregroundStyle(colorScheme == .dark ? Color.black.opacity(0.85) : Color.white)
             .background(accent, in: RoundedRectangle(cornerRadius: 10))
 
