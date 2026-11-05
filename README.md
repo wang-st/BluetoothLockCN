@@ -26,7 +26,7 @@
 
 ## 下载安装
 
-前往 [Releases](https://github.com/wang-st/BluetoothLockCN/releases/latest)，下载 `BluetoothLockCN-v1.0.1-macOS-arm64.zip`（**Apple Silicon，macOS 13+**）。解压后将「蓝牙感应锁.app」拖入「应用程序」文件夹，再双击打开。此安装包不适用于 Intel Mac，Intel 用户可尝试从源码构建。
+前往 [Releases](https://github.com/wang-st/BluetoothLockCN/releases/latest)，下载 `BluetoothLockCN-v1.0.2-macOS-arm64.zip`（**Apple Silicon，macOS 13+**）。解压后将「蓝牙感应锁.app」拖入「应用程序」文件夹，再双击打开。此安装包不适用于 Intel Mac，Intel 用户可尝试从源码构建。
 
 安装包未经过 Apple 公证。首次打开时，macOS 可能提示无法验证开发者；确认下载来源后，可在「系统设置 → 隐私与安全性」中查看并处理系统的打开提示。
 

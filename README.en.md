@@ -26,7 +26,7 @@
 
 ## Download and install
 
-Visit [Releases](https://github.com/wang-st/BluetoothLockCN/releases/latest) and download `BluetoothLockCN-v1.0.1-macOS-arm64.zip` (**Apple Silicon, macOS 13+**). Unzip it, drag `蓝牙感应锁.app` into Applications, and open it. This binary does not support Intel Macs; Intel users can try building from source.
+Visit [Releases](https://github.com/wang-st/BluetoothLockCN/releases/latest) and download `BluetoothLockCN-v1.0.2-macOS-arm64.zip` (**Apple Silicon, macOS 13+**). Unzip it, drag `蓝牙感应锁.app` into Applications, and open it. This binary does not support Intel Macs; Intel users can try building from source.
 
 The app is not notarized by Apple. macOS may show an unidentified-developer warning on first launch. After verifying the download source, review the opening prompt in **System Settings → Privacy & Security**.
 
