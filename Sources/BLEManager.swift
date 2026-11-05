@@ -37,12 +37,12 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
 
     var stateText: String {
         switch central.state {
-        case .poweredOn: return "蓝牙已开启"
-        case .poweredOff: return "蓝牙已关闭"
-        case .unauthorized: return "蓝牙权限未授权（系统设置 → 隐私与安全性 → 蓝牙）"
-        case .unsupported: return "本机不支持低功耗蓝牙"
-        case .unknown, .resetting: return "蓝牙初始化中…"
-        @unknown default: return "蓝牙状态未知"
+        case .poweredOn: return Prefs.language.text("蓝牙已开启", "Bluetooth is on")
+        case .poweredOff: return Prefs.language.text("蓝牙已关闭", "Bluetooth is off")
+        case .unauthorized: return Prefs.language.text("蓝牙权限未授权（系统设置 → 隐私与安全性 → 蓝牙）", "Bluetooth access is denied (System Settings → Privacy & Security → Bluetooth)")
+        case .unsupported: return Prefs.language.text("本机不支持低功耗蓝牙", "This Mac does not support Bluetooth Low Energy")
+        case .unknown, .resetting: return Prefs.language.text("蓝牙初始化中…", "Initializing Bluetooth…")
+        @unknown default: return Prefs.language.text("蓝牙状态未知", "Unknown Bluetooth state")
         }
     }
 
@@ -145,7 +145,7 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         savedName = p.name
         if persist {
             UserDefaults.standard.set(p.identifier.uuidString, forKey: Prefs.deviceUUIDKey)
-            UserDefaults.standard.set(p.name ?? "未命名设备", forKey: Prefs.deviceNameKey)
+            UserDefaults.standard.set(p.name, forKey: Prefs.deviceNameKey)
         }
         if isReady { central.connect(p) }
         onStateChange?()

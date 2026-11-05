@@ -12,6 +12,7 @@ final class PanelWindow: NSPanel {
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private let panelSize = PanelView.size
+    private var language: AppLanguage { Prefs.language }
 
     private var statusItem: NSStatusItem!
     private var panel: PanelWindow!
@@ -198,7 +199,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.title = ""
         } else {
             button.image = Self.lockIcon()
-            button.title = away ? " 已锁" : ""
+            button.title = away ? language.text(" 已锁", " Locked") : ""
         }
     }
 
@@ -224,6 +225,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// 将内部状态同步到 SwiftUI 面板模型
     private func syncModel() {
+        model.language = Prefs.language
         model.monitoring = Prefs.monitoring
         model.bleReady = ble.isReady
         model.bleStateText = ble.stateText
@@ -284,7 +286,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if belowSince == nil { belowSince = now }
             if !presenceIsAway, let since = belowSince,
                now.timeIntervalSince(since) >= Double(Prefs.delaySec) {
-                requestAwayLock(reason: "设备已离开信号范围")
+                requestAwayLock(reason: language.text("设备已离开信号范围", "Device is out of signal range"))
             }
         } else {
             belowSince = nil
@@ -292,8 +294,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if presenceIsAway {
                 presenceIsAway = false
                 if let away = awayAt, now.timeIntervalSince(away) >= 5 {
-                    Notifier.send(title: "蓝牙感应锁",
-                                  body: "设备已回到附近（信号 \(Int(smoothed)) dBm）")
+                    Notifier.send(title: language.text("蓝牙感应锁", "Bluetooth Lock"),
+                                  body: language.text("设备已回到附近（信号 \(Int(smoothed)) dBm）", "Device is nearby again (signal \(Int(smoothed)) dBm)"))
                 }
                 awayAt = nil
             }
@@ -320,9 +322,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         awayAt = Date()
         if !LockController.isScreenLocked() {
             if LockController.lockScreen() {
-                Notifier.send(title: "蓝牙感应锁", body: "\(reason)，Mac 已自动锁屏")
+                Notifier.send(title: language.text("蓝牙感应锁", "Bluetooth Lock"), body: language.text("\(reason)，Mac 已自动锁屏", "\(reason). Your Mac has been locked automatically."))
             } else {
-                Notifier.send(title: "蓝牙感应锁", body: "\(reason)，但自动锁屏失败，请手动锁屏")
+                Notifier.send(title: language.text("蓝牙感应锁", "Bluetooth Lock"), body: language.text("\(reason)，但自动锁屏失败，请手动锁屏", "\(reason), but automatic locking failed. Please lock your Mac manually."))
             }
         }
         refresh()
@@ -360,7 +362,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 暂缓中的锁屏：等用户停止使用电脑后立即执行
         if pendingAwayLock && !presenceIsAway {
             if !ActivityMonitor.isUserActive() {
-                markAwayLocked(reason: "设备已离开信号范围（已等待您停止使用电脑）")
+                markAwayLocked(reason: language.text("设备已离开信号范围（已等待您停止使用电脑）", "Device is out of range (waited until you stopped using your Mac)"))
             }
             return
         }
@@ -370,14 +372,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if connectionLostAt == nil { connectionLostAt = now }
             if !presenceIsAway, let t = connectionLostAt,
                now.timeIntervalSince(t) >= 10 {
-                requestAwayLock(reason: "设备蓝牙连接已断开超过 10 秒")
+                requestAwayLock(reason: language.text("设备蓝牙连接已断开超过 10 秒", "Bluetooth device has been disconnected for over 10 seconds"))
             }
         } else {
             connectionLostAt = nil
             // 连接仍在但 RSSI 长时间无更新（设备远去且未断连）
             if hasSignal, !presenceIsAway, let t = lastRSSIAt,
                now.timeIntervalSince(t) >= 10 {
-                requestAwayLock(reason: "设备信号已长时间无更新")
+                requestAwayLock(reason: language.text("设备信号已长时间无更新", "Device signal has not updated for an extended period"))
             }
         }
     }
@@ -419,6 +421,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onLaunchToggle: { [weak self] enabled in
                 self?.setLaunchAtLogin(enabled)
             },
+            onLanguage: { [weak self] language in
+                Prefs.language = language
+                self?.refresh()
+            },
             onLock: { LockController.lockScreen() },
             onQuit: { NSApplication.shared.terminate(nil) }
         )
@@ -433,8 +439,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try SMAppService.mainApp.unregister()
             }
         } catch {
-            Notifier.send(title: "蓝牙感应锁",
-                          body: "开机自启设置失败：\(error.localizedDescription)。建议先将应用移到「应用程序」文件夹后重试。")
+            Notifier.send(title: language.text("蓝牙感应锁", "Bluetooth Lock"),
+                          body: language.text("开机自启设置失败：\(error.localizedDescription)。建议先将应用移到「应用程序」文件夹后重试。", "Could not change launch at login: \(error.localizedDescription). Try moving the app to Applications first."))
         }
         refresh()
     }

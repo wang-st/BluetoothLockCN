@@ -5,6 +5,13 @@ enum Prefs {
     static let deviceUUIDKey = "deviceUUID"
     static let deviceNameKey = "deviceName"
 
+    static var language: AppLanguage {
+        get {
+            AppLanguage(rawValue: UserDefaults.standard.string(forKey: "language") ?? "") ?? .chinese
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "language") }
+    }
+
     static var threshold: Int {
         get { UserDefaults.standard.object(forKey: "threshold") as? Int ?? -70 }
         set { UserDefaults.standard.set(newValue, forKey: "threshold") }

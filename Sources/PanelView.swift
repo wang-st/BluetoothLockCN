@@ -10,6 +10,7 @@ struct DiscoveredDevice: Identifiable {
 }
 
 final class PanelModel: ObservableObject {
+    @Published var language = Prefs.language
     @Published var monitoring = false
     @Published var bleReady = false
     @Published var bleStateText = ""
@@ -39,6 +40,7 @@ struct PanelActions {
     var onDelay: (Int) -> Void = { _ in }
     var onActivityToggle: (Bool) -> Void = { _ in }
     var onLaunchToggle: (Bool) -> Void = { _ in }
+    var onLanguage: (AppLanguage) -> Void = { _ in }
     var onLock: () -> Void = {}
     var onQuit: () -> Void = {}
 }
@@ -51,6 +53,8 @@ struct PanelView: View {
     @ObservedObject var model: PanelModel
     @Environment(\.colorScheme) private var colorScheme
     let actions: PanelActions
+
+    private var language: AppLanguage { model.language }
 
     private var accent: Color {
         colorScheme == .dark
@@ -70,14 +74,14 @@ struct PanelView: View {
         model.hasSignal ? min(5, max(1, Int(normalized * 5.4))) : 0
     }
     private var statusInfo: (text: String, color: Color) {
-        if !model.bleReady { return ("蓝牙未就绪", .secondary) }
-        if model.deviceName == nil { return ("等待选择设备", .secondary) }
-        if !model.monitoring { return ("监控已暂停", .secondary) }
-        if model.pendingLock { return ("使用中 · 暂缓锁屏", .orange) }
-        if model.isAway { return ("设备已离开", .red) }
-        if !model.connected { return ("正在重新连接", .orange) }
-        if !model.hasSignal { return ("正在获取信号", .secondary) }
-        return ("设备在附近", accent)
+        if !model.bleReady { return (language.text("蓝牙未就绪", "Bluetooth unavailable"), .secondary) }
+        if model.deviceName == nil { return (language.text("等待选择设备", "Choose a device"), .secondary) }
+        if !model.monitoring { return (language.text("监控已暂停", "Monitoring paused"), .secondary) }
+        if model.pendingLock { return (language.text("使用中 · 暂缓锁屏", "In use · Lock deferred"), .orange) }
+        if model.isAway { return (language.text("设备已离开", "Device away"), .red) }
+        if !model.connected { return (language.text("正在重新连接", "Reconnecting"), .orange) }
+        if !model.hasSignal { return (language.text("正在获取信号", "Waiting for signal"), .secondary) }
+        return (language.text("设备在附近", "Device nearby"), accent)
     }
     private var signalColor: Color {
         if model.isAway { return .red }
@@ -121,21 +125,21 @@ struct PanelView: View {
                 .frame(width: 38, height: 38)
                 .background(accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
             VStack(alignment: .leading, spacing: 3) {
-                Text("蓝牙感应锁")
+                Text(language.text("蓝牙感应锁", "Bluetooth Lock"))
                     .font(.system(size: 16, weight: .semibold))
-                Text("离开时，自动守护你的 Mac")
+                Text(language.text("离开时，自动守护你的 Mac", "Locks your Mac when you step away"))
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
-            Toggle("开启监控", isOn: Binding(
+            Toggle(language.text("开启监控", "Enable monitoring"), isOn: Binding(
                 get: { model.monitoring },
                 set: { _ in actions.onToggleMonitoring() }
             ))
             .toggleStyle(.switch)
             .labelsHidden()
             .controlSize(.small)
-            .help(model.monitoring ? "暂停自动锁屏监控" : "开启自动锁屏监控")
+            .help(model.monitoring ? language.text("暂停自动锁屏监控", "Pause automatic locking") : language.text("开启自动锁屏监控", "Enable automatic locking"))
         }
         .padding(18)
     }
@@ -143,7 +147,7 @@ struct PanelView: View {
     private var signalSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Label("实时信号", systemImage: "wave.3.right")
+                Label(language.text("实时信号", "Live signal"), systemImage: "wave.3.right")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -161,11 +165,11 @@ struct PanelView: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
-                    Text(model.deviceName ?? "选择设备后开始感应")
+                    Text(model.deviceName ?? language.text("选择设备后开始感应", "Choose a device to get started"))
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                        .help(model.deviceName ?? "选择设备后开始感应")
+                        .help(model.deviceName ?? language.text("选择设备后开始感应", "Choose a device to get started"))
                 }
                 Spacer(minLength: 12)
                 HStack(alignment: .bottom, spacing: 4) {
@@ -201,14 +205,14 @@ struct PanelView: View {
                     }
                 }
                 .frame(height: 8)
-                .accessibilityLabel("锁定阈值 \(model.threshold) dBm")
+                .accessibilityLabel(language.text("锁定阈值 \(model.threshold) dBm", "Lock threshold \(model.threshold) dBm"))
                 HStack {
-                    Text("弱")
+                    Text(language.text("弱", "Weak"))
                     Spacer()
-                    Text("锁定阈值 \(model.threshold) dBm")
+                    Text(language.text("锁定阈值 \(model.threshold) dBm", "Lock threshold \(model.threshold) dBm"))
                         .monospacedDigit()
                     Spacer()
-                    Text("强")
+                    Text(language.text("强", "Strong"))
                 }
                 .font(.system(size: 10))
                 .foregroundStyle(.secondary)
@@ -245,14 +249,14 @@ struct PanelView: View {
     private var deviceSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("监控设备", systemImage: "antenna.radiowaves.left.and.right")
+                Label(language.text("监控设备", "Monitored device"), systemImage: "antenna.radiowaves.left.and.right")
                     .font(.system(size: 12, weight: .semibold))
                 Spacer()
                 if model.scanning {
                     ProgressView().controlSize(.mini)
                 }
                 Button(action: actions.onScan) {
-                    Label(model.scanning ? "停止" : "扫描", systemImage: model.scanning ? "stop.fill" : "arrow.clockwise")
+                    Label(model.scanning ? language.text("停止", "Stop") : language.text("扫描", "Scan"), systemImage: model.scanning ? "stop.fill" : "arrow.clockwise")
                         .font(.system(size: 10, weight: .medium))
                         .padding(.horizontal, 9)
                         .padding(.vertical, 5)
@@ -275,9 +279,9 @@ struct PanelView: View {
                         .foregroundStyle(accent.opacity(0.7))
                         .frame(width: 32)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(model.scanning ? "正在寻找附近设备" : "暂无扫描结果")
+                        Text(model.scanning ? language.text("正在寻找附近设备", "Looking for nearby devices") : language.text("暂无扫描结果", "No devices found"))
                             .font(.system(size: 11, weight: .medium))
-                        Text(model.scanning ? "请将蓝牙设备放在 Mac 附近" : "点击扫描，选择要感应的蓝牙设备")
+                        Text(model.scanning ? language.text("请将蓝牙设备放在 Mac 附近", "Keep your Bluetooth device near your Mac") : language.text("点击扫描，选择要感应的蓝牙设备", "Scan to choose a Bluetooth device"))
                             .font(.system(size: 10))
                             .foregroundStyle(.secondary)
                     }
@@ -314,7 +318,7 @@ struct PanelView: View {
                     .lineLimit(1)
                 Spacer(minLength: 6)
                 if selected {
-                    Text("已选择")
+                    Text(language.text("已选择", "Selected"))
                         .font(.system(size: 10))
                         .foregroundStyle(accent)
                     Image(systemName: "checkmark.circle.fill")
@@ -328,17 +332,17 @@ struct PanelView: View {
         }
         .buttonStyle(.plain)
         .help(device.name)
-        .accessibilityValue(selected ? "已选择" : "未选择")
+        .accessibilityValue(selected ? language.text("已选择", "Selected") : language.text("未选择", "Not selected"))
     }
 
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 13) {
-            Label("自动锁屏", systemImage: "slider.horizontal.3")
+            Label(language.text("自动锁屏", "Auto lock"), systemImage: "slider.horizontal.3")
                 .font(.system(size: 12, weight: .semibold))
 
             VStack(spacing: 5) {
                 HStack {
-                    Text("信号阈值")
+                    Text(language.text("信号阈值", "Signal threshold"))
                     Spacer()
                     Text("\(model.threshold) dBm")
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
@@ -352,24 +356,24 @@ struct PanelView: View {
                     get: { Double(model.threshold) },
                     set: { actions.onThreshold(Int($0)) }
                 ), in: -100...(-30), step: 1)
-                .accessibilityLabel("锁定信号阈值")
+                .accessibilityLabel(language.text("锁定信号阈值", "Lock signal threshold"))
                 HStack {
-                    Text("更远时锁屏")
+                    Text(language.text("更远时锁屏", "Lock farther away"))
                     Spacer()
-                    Text("更近时锁屏")
+                    Text(language.text("更近时锁屏", "Lock closer"))
                 }
                 .font(.system(size: 9))
                 .foregroundStyle(.secondary)
             }
 
             HStack(spacing: 12) {
-                Text("离开延迟")
+                Text(language.text("离开延迟", "Lock delay"))
                 Spacer(minLength: 0)
-                Picker("离开延迟", selection: Binding(
+                Picker(language.text("离开延迟", "Lock delay"), selection: Binding(
                     get: { model.delaySec },
                     set: { actions.onDelay($0) }
                 )) {
-                    ForEach([1, 3, 5, 10, 15], id: \.self) { Text("\($0)秒").tag($0) }
+                    ForEach([1, 3, 5, 10, 15], id: \.self) { Text(language.text("\($0)秒", "\($0)s")).tag($0) }
                 }
                 .labelsHidden()
                 .pickerStyle(.segmented)
@@ -384,9 +388,10 @@ struct PanelView: View {
                 set: { actions.onActivityToggle($0) }
             )) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("使用电脑时暂缓锁屏")
-                    Text("鼠标键盘操作结束后再锁屏")
+                    Text(language.text("使用电脑时暂缓锁屏", "Defer locking while in use"))
+                    Text(language.text("鼠标键盘操作结束后再锁屏", "Wait until mouse and keyboard are idle"))
                         .font(.system(size: 10)).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .toggleStyle(.switch)
@@ -397,13 +402,33 @@ struct PanelView: View {
                 set: { actions.onLaunchToggle($0) }
             )) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("开机自动启动")
-                    Text("登录后在菜单栏安静运行")
+                    Text(language.text("开机自动启动", "Launch at login"))
+                    Text(language.text("登录后在菜单栏安静运行", "Run in the menu bar when you sign in"))
                         .font(.system(size: 10)).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .toggleStyle(.switch)
             .controlSize(.small)
+
+            Divider().opacity(0.5)
+
+            HStack {
+                Label("语言 / Language", systemImage: "globe")
+                Spacer()
+                Picker("语言 / Language", selection: Binding(
+                    get: { model.language },
+                    set: { actions.onLanguage($0) }
+                )) {
+                    ForEach(AppLanguage.allCases) { language in
+                        Text(language.displayName).tag(language)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 160)
+                .controlSize(.small)
+            }
         }
         .font(.system(size: 11))
         .padding(14)
@@ -413,7 +438,7 @@ struct PanelView: View {
     private var footer: some View {
         HStack(spacing: 10) {
             Button(action: actions.onLock) {
-                Label("立即锁屏", systemImage: "lock.fill")
+                Label(language.text("立即锁屏", "Lock now"), systemImage: "lock.fill")
                     .font(.system(size: 12, weight: .semibold))
                     .frame(maxWidth: .infinity, minHeight: 36)
                     .contentShape(RoundedRectangle(cornerRadius: 10))
@@ -431,8 +456,8 @@ struct PanelView: View {
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
-            .help("退出蓝牙感应锁")
-            .accessibilityLabel("退出蓝牙感应锁")
+            .help(language.text("退出蓝牙感应锁", "Quit Bluetooth Lock"))
+            .accessibilityLabel(language.text("退出蓝牙感应锁", "Quit Bluetooth Lock"))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
