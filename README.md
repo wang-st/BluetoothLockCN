@@ -24,6 +24,12 @@
 
 **不是所有蓝牙设备都适用。** 传统蓝牙音频设备、没有广播可连接 BLE 服务的手机或其他外设，可能不会出现在列表中，或无法建立连接。macOS 蓝牙设置中的已配对设备列表与本应用的扫描结果并不等同。
 
+## 下载安装
+
+前往 [Releases](https://github.com/wang-st/BluetoothLockCN/releases/latest)，下载 `BluetoothLockCN-v1.0.0-macOS-arm64.zip`（**Apple Silicon，macOS 13+**）。解压后将「蓝牙感应锁.app」拖入「应用程序」文件夹，再双击打开。此安装包不适用于 Intel Mac，Intel 用户可尝试从源码构建。
+
+安装包未经过 Apple 公证。首次打开时，macOS 可能提示无法验证开发者；确认下载来源后，可在「系统设置 → 隐私与安全性」中查看并处理系统的打开提示。
+
 ## 从源码构建
 
 ```sh
